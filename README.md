@@ -15,4 +15,3 @@ Read `AGENTS.md` first (Claude Code loads it through `CLAUDE.md`).
 - `fpga/` — Quartus project (Nick)
 - `firmware/` — ESP32 PlatformIO project
 - `ui/` — web app (Dominique), run with `?mock=1` for no hardware
-- `docs/` — architecture, protocol, pitch
