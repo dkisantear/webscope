@@ -1,0 +1,12 @@
+# Quartus
+fpga/quartus/db/
+fpga/quartus/incremental_db/
+fpga/quartus/output_files/
+*.qws
+# PlatformIO
+firmware/.pio/
+# Misc
+.DS_Store
+Thumbs.db
+.vscode/
+node_modules/
