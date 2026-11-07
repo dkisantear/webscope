@@ -10,9 +10,10 @@ Read `AGENTS.md` first (Claude Code loads it through `CLAUDE.md`).
 
 ## Signal path
 ```
-Signal (0–5 V) → DE10-Lite Arduino A0 → FPGA pipeline → link → ESP32 → Wi-Fi → Browser
+Signal (0–2.5 V) → DE10-Lite Arduino A0 → FPGA pipeline → link → ESP32 → Wi-Fi → Browser
 ```
-- For now: ADALM2000 signal generator kept within 0–5 V (e.g. 2.5 V offset) straight into A0. No extra circuit.
+- **Input limit: 0–2.5 V.** Never go above 2.5 V or below 0 V.
+- For now: ADALM2000 signal generator kept within 0–2.5 V (e.g. 1.25 V offset, at most 2.5 V peak-to-peak) straight into A0. No extra circuit.
 - Later: front-end circuit for negative and higher voltages, plus input protection.
 
 ## Layout
