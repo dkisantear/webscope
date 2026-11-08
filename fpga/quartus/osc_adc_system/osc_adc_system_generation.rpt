@@ -1,0 +1,33 @@
+Info: Starting: Create block symbol file (.bsf)
+Info: qsys-generate C:\Hackathon\osc_adc_system.qsys --block-symbol-file --output-directory=C:\Hackathon\osc_adc_system --family="MAX 10" --part=10M50DAF484C7G
+Progress: Loading Hackathon/osc_adc_system.qsys
+Progress: Reading input file
+Progress: Adding clk_0 [clock_source 20.1]
+Progress: Parameterizing module clk_0
+Progress: Adding modular_adc_0 [altera_modular_adc 20.1]
+Progress: Parameterizing module modular_adc_0
+Progress: Building connections
+Progress: Parameterizing connections
+Progress: Validating
+Progress: Done reading input file
+Info: qsys-generate succeeded.
+Info: Finished: Create block symbol file (.bsf)
+Info: 
+Info: Starting: Create HDL design files for synthesis
+Info: qsys-generate C:\Hackathon\osc_adc_system.qsys --synthesis=VERILOG --output-directory=C:\Hackathon\osc_adc_system\synthesis --family="MAX 10" --part=10M50DAF484C7G
+Progress: Loading Hackathon/osc_adc_system.qsys
+Progress: Reading input file
+Progress: Adding clk_0 [clock_source 20.1]
+Progress: Parameterizing module clk_0
+Progress: Adding modular_adc_0 [altera_modular_adc 20.1]
+Progress: Parameterizing module modular_adc_0
+Progress: Building connections
+Progress: Parameterizing connections
+Progress: Validating
+Progress: Done reading input file
+Info: osc_adc_system: Generating osc_adc_system "osc_adc_system" for QUARTUS_SYNTH
+Info: modular_adc_0: "osc_adc_system" instantiated altera_modular_adc "modular_adc_0"
+Info: control_internal: "modular_adc_0" instantiated altera_modular_adc_control "control_internal"
+Info: osc_adc_system: Done "osc_adc_system" with 3 modules, 9 files
+Info: qsys-generate succeeded.
+Info: Finished: Create HDL design files for synthesis
