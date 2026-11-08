@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0b0e">
+  <title>WebScope</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M1 11.2h7.6L11.2 1.5l2.4 21 2.1-10.6H23' fill='none' stroke='%23f5a524' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Wide screens: the instrument is drawn at 960×650 and scaled to fit. Upright phones: stacked layout (src/fit.js). -->
+  <div class="stage">
+  <div class="instrument" id="instrument">
+    <header class="topbar">
+      <div class="brand">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 11.2h7.6L11.2 1.5l2.4 21 2.1-10.6H23" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        WebScope
+      </div>
+      <div class="segmented" role="group" aria-label="Data source" data-tip="Demo / Live|Demo plays a built-in test signal. Live shows your real circuit through the WebScope box.">
+        <button type="button" data-mode="demo" class="active">Demo</button>
+        <button type="button" data-mode="live">Live</button>
+      </div>
+      <span class="spacer"></span>
+      <div class="actions">
+        <button type="button" id="tipsBtn" class="btn btn-soft" aria-pressed="false" data-tip="Tips|When on, tap or hover anything to see what it does.">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6M12 17.2v.1"/></svg><span>Tips</span>
+        </button>
+        <button type="button" id="guideBtn" class="btn btn-soft" data-tip="Setup guide|How to hook WebScope up, plus practice circuits with what you should see.">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2 2 0 0 1 6 3.5h13v15H6a2 2 0 0 0-2 2zM4 20.5v-15M8.5 8h6.5M8.5 11.5h6.5"/></svg><span>Guide</span>
+        </button>
+        <button type="button" id="runBtn" class="btn btn-run" data-tip="Run / Stop|Stop freezes the screen so you can look closely. Run goes live again.">Stop</button>
+        <button type="button" id="autoBtn" class="btn btn-primary" data-tip="Auto Set|Finds your signal and picks good zoom settings for you. Start here.">Auto Set</button>
+      </div>
+    </header>
+
+    <section class="screen-area">
+      <div class="screen" data-tip="Screen|Height is voltage, left to right is time. Drag up or down to move the wave. With cursors on, drag the dashed lines."><canvas id="scope" aria-label="Oscilloscope display"></canvas></div>
+      <dl class="meas">
+        <div data-tip="Frequency|How many times per second the wave repeats.|Ex: a 1 kHz tone repeats 1,000 times a second."><dt>Freq</dt><dd id="m-freq">—</dd></div>
+        <div data-tip="Period|How long one full cycle takes. Period = 1 ÷ frequency."><dt>Period</dt><dd id="m-period">—</dd></div>
+        <div data-tip="Peak-to-peak|Distance from the lowest point to the highest point of the wave."><dt>Pk-Pk</dt><dd id="m-vpp">—</dd></div>
+        <div data-tip="RMS|The &quot;effective&quot; voltage: the steady DC voltage that would deliver the same power.|Ex: how much a signal would heat a resistor."><dt>RMS</dt><dd id="m-rms">—</dd></div>
+        <div data-tip="Max|Highest voltage in the capture."><dt>Max</dt><dd id="m-max">—</dd></div>
+        <div data-tip="Min|Lowest voltage in the capture."><dt>Min</dt><dd id="m-min">—</dd></div>
+        <div data-tip="Mean|Average voltage over the capture."><dt>Mean</dt><dd id="m-mean">—</dd></div>
+      </dl>
+      <p id="summary" class="summary">Waiting for signal…</p>
+    </section>
+
+    <aside class="panel">
+      <nav class="tabs" role="tablist" aria-label="Controls">
+        <button type="button" role="tab" data-tab="scope" class="active">Scope</button>
+        <button type="button" role="tab" data-tab="measure">Measure</button>
+      </nav>
+
+      <!-- Scope tab: Vertical, Horizontal, Trigger -->
+      <div class="tab-page" data-page="scope">
+        <section class="group">
+          <h2>Vertical <span class="tag ch1">CH1</span>
+            <label class="switch" id="glitchSwitch" data-tip="De-glitch|Removes single-sample spikes caused by a bad read on the wires between the FPGA and ESP32. Real edges, like a button press, are kept." hidden><input type="checkbox" id="glitchEnable" checked><span>De-glitch</span></label>
+          </h2>
+          <div id="sVdiv"></div>
+          <div id="sPos"></div>
+        </section>
+
+        <section class="group">
+          <h2>Horizontal</h2>
+          <div class="acq-row" data-tip="Sample rate|How many times per second the FPGA measures the input. Each capture is always 2048 samples, so a lower rate covers more time.|Ex: 100 kSa/s → 2048 samples = 20.48 ms.">
+            <label for="rateSel">Sample rate</label>
+            <select id="rateSel" aria-label="Sample rate"></select>
+          </div>
+          <p class="acq-info"><span id="acqLen">— samples (fixed)</span> · <span id="acqDur">—</span></p>
+          <div id="sTdiv"></div>
+          <p id="captureNote" class="note" hidden></p>
+          <p class="acq-info" id="acqStatus" data-tip="Status|Connection to the WebScope box and what the FPGA is doing right now.">—</p>
+        </section>
+
+        <section class="group">
+          <h2>Trigger <span class="tag trig">T</span>
+            <label class="switch" data-tip="Trigger on/off|On: the FPGA waits for the wave to cross the level, so the picture stands still. Off: free run, captures right away."><input type="checkbox" id="trigEnable" checked><span>On</span></label>
+          </h2>
+          <div id="sTrig"></div>
+          <div class="trig-row">
+            <div class="segmented small" role="group" aria-label="Trigger edge" data-tip="Trigger edge|Start the picture where the wave crosses the level going up (rising) or going down (falling). This is what makes the wave stand still.">
+              <button type="button" data-edge="rising" class="active">↑ Rising</button>
+              <button type="button" data-edge="falling">↓ Falling</button>
+            </div>
+            <div class="segmented small" role="group" aria-label="Trigger mode">
+              <button type="button" data-tmode="auto" class="active" data-tip="Auto|Always shows the wave, even if it never crosses the trigger level. Best place to start.">Auto</button>
+              <button type="button" data-tmode="normal" data-tip="Normal|Only updates when the wave crosses the level. Good for signals that come and go.">Normal</button>
+              <button type="button" data-tmode="single" data-tip="Single|Waits for one trigger, grabs it, and stops. Great for one-time events like a button press.">Single</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="group" id="demoGroup">
+          <h2><span id="shapeTitle">Test waveform</span> <span class="tag demo" id="shapeTag">DEMO</span></h2>
+          <div class="segmented small shapes" role="group" aria-label="Waveform type">
+            <button type="button" data-shape="sine" class="active" data-tip="Sine wave|A smooth, rounded wave that rises and falls evenly.|Ex: wall power (AC), pure audio tones."><span>∿</span>Sine</button>
+            <button type="button" data-shape="square" data-tip="Square wave|Jumps straight between two levels, half the time high and half low.|Ex: digital clocks, blinking LEDs."><span>⊓</span>Square</button>
+            <button type="button" data-shape="triangle" data-tip="Triangle wave|Ramps up and down in straight lines at the same speed.|Ex: synthesizer sounds, sweep circuits."><span>⋀</span>Triangle</button>
+            <button type="button" data-shape="pulse" data-tip="Step / pulse|Sits at one level, then jumps to another for a short time.|Ex: a button press, a trigger signal, PWM at low duty."><span>⎍</span>Pulse</button>
+          </div>
+          <p class="note" id="shapeNote" hidden>WebScope guesses the shape of your live signal and lights it up.</p>
+          <div class="slider-grid" id="demoSliders">
+            <div id="sFreq"></div>
+            <div id="sAmp"></div>
+            <div id="sOff"></div>
+            <div id="sNoise"></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Measure tab: all measurements, cursors, save -->
+      <div class="tab-page" data-page="measure" hidden>
+        <section class="group">
+          <h2>Measurements <button type="button" id="holdReset" class="link" data-tip="Reset hold|Clears the lowest/highest seen since Run.">Reset hold</button></h2>
+          <dl class="mtable">
+            <div data-tip="Duty cycle|How much of each cycle the wave spends high.|Ex: 25% = on a quarter of the time (PWM)."><dt>Duty cycle</dt><dd id="m-duty">—</dd></div>
+            <div data-tip="Pulse width|How long the wave stays high in each cycle."><dt>Width (high)</dt><dd id="m-width">—</dd></div>
+            <div data-tip="Rise time|How long the wave takes to go from 10% to 90% of its height. Shorter = sharper edge."><dt>Rise time</dt><dd id="m-rise">—</dd></div>
+            <div data-tip="Fall time|How long the wave takes to drop from 90% to 10% of its height."><dt>Fall time</dt><dd id="m-fall">—</dd></div>
+            <div data-tip="Highest seen|The highest voltage since you pressed Run. Catches short spikes."><dt>Highest seen</dt><dd id="m-hmax">—</dd></div>
+            <div data-tip="Lowest seen|The lowest voltage since you pressed Run. Catches short dips."><dt>Lowest seen</dt><dd id="m-hmin">—</dd></div>
+          </dl>
+        </section>
+
+        <section class="group">
+          <h2>Cursors</h2>
+          <div class="segmented small" role="group" aria-label="Cursors" data-tip="Cursors|Two lines you drag on the screen to measure the time or voltage between any two points.">
+            <button type="button" data-cursor="off" class="active">Off</button>
+            <button type="button" data-cursor="time">Time ↔</button>
+            <button type="button" data-cursor="volts">Volts ↕</button>
+          </div>
+          <dl class="mtable" id="cursorReadout" hidden>
+            <div><dt id="c-l1">C1</dt><dd id="c-1">—</dd></div>
+            <div><dt id="c-l2">C2</dt><dd id="c-2">—</dd></div>
+            <div><dt>Difference Δ</dt><dd id="c-d">—</dd></div>
+            <div id="c-frow"><dt>1 / ΔT</dt><dd id="c-f">—</dd></div>
+          </dl>
+        </section>
+
+        <section class="group">
+          <h2>Save</h2>
+          <div class="row2">
+            <button type="button" class="btn" id="savePng" data-tip="Picture|Saves what's on the screen as an image.">Picture</button>
+            <button type="button" class="btn" id="saveCsv" data-tip="Data (CSV)|Saves the raw samples (time, volts) for Excel, MATLAB or Python.">Data (CSV)</button>
+          </div>
+        </section>
+      </div>
+
+    </aside>
+  </div>
+  </div>
+
+  <dialog id="guide" class="guide">
+    <div class="guide-head">
+      <h2 id="guideTitle">Setup guide</h2>
+      <button type="button" class="btn btn-icon" data-close aria-label="Close">✕</button>
+    </div>
+
+    <ol class="steps">
+      <li class="step" data-part="First run · 1 of 4">
+        <figure data-art="power"></figure>
+        <h3>Power up</h3>
+        <p>Plug in both USB cables. Join the <b>WebScope</b> Wi-Fi, then open <b>http://192.168.4.1</b>.</p>
+      </li>
+      <li class="step" data-part="First run · 2 of 4">
+        <figure data-art="exButton"></figure>
+        <h3>Build the button circuit</h3>
+        <p>Copy the picture: 3.3 V → button → 10 kΩ → 10 kΩ → ground. The middle of the two resistors is what you'll measure.</p>
+      </li>
+      <li class="step" data-part="First run · 3 of 4">
+        <figure data-art="leads"></figure>
+        <h3>Connect the leads</h3>
+        <p><b>Black GND</b> lead to the <b>−</b> rail first. Then the <b>yellow CH1</b> lead to the middle of the resistors.</p>
+      </li>
+      <li class="step" data-part="First run · 4 of 4">
+        <div class="signal-check" id="signalCheck"><span class="dot"></span><span class="text">Waiting for signal…</span></div>
+        <h3>Go Live and press the button</h3>
+        <p>Tap <b>Live</b>, then press the button a few times. The line jumps up while it's held.</p>
+        <div class="expect"><b>You should see</b><span>Released ≈ 0 V</span><span>Pressed ≈ 1.65 V</span></div>
+      </li>
+    </ol>
+
+    <div class="limit">
+      <strong>Input limit: 0 – 2.5 V</strong>
+      <span>Anything higher can damage the FPGA. Never connect wall power.</span>
+    </div>
+
+    <div class="guide-nav">
+      <button type="button" class="btn" data-prev>Back</button>
+      <div class="dots" aria-hidden="true"></div>
+      <button type="button" class="btn btn-primary" data-next>Next</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
